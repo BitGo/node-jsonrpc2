@@ -4,6 +4,8 @@ module.exports = function (classes) {
   var
     net = require('net'),
     http = require('http'),
+    https = require('https'),
+    fs = require('fs'),
     extend = require('util')._extend,
     JsonParser = require('jsonparse'),
 
@@ -55,11 +57,18 @@ module.exports = function (classes) {
       listen: function (port, host) {
         var
           self = this,
-          server = http.createServer();
+          server;
 
-        server.on('request', function onRequest(req, res) {
-          self.handleHttp(req, res);
-        });
+        if (this.opts.type === 'https') {
+          var options = {
+            key: fs.readFileSync(this.opts.https.keyPath),
+            cert: fs.readFileSync(this.opts.https.certPath)
+          };
+          server = https.createServer(options, self.handleHttp.bind(self));
+        } else {
+          server = http.createServer();
+          server.on('request', self.handleHttp.bind(self));
+        }
 
         if (port) {
           server.listen(port, host);
